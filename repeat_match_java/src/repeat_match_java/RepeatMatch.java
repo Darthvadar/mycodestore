@@ -725,32 +725,28 @@ public final class RepeatMatch {
 	   Node_Array.get(Root) . Len = 0;
 	   Node_Array.get(Root) . Sibling_Is_Leaf = false;
 	   Node_Array.get(Root) . Child_Is_Leaf = true;
-	#if  USE_EXTRA_FIELDS
 	   Node_Array.get(Root) . Depth = 0;
 	   Node_Array.get(Root) . ID = Curr_ID;
 	   Node_Array.get(Root) . Parent = NIL;
-	#endif
 
-	   Leaf_Array [Leaf] . Lo = Start;
-	   Leaf_Array [Leaf] . Sibling = NIL;
-	   Leaf_Array [Leaf] . Len = 1 + End - Start;
-	   Leaf_Array [Leaf] . Sibling_Is_Leaf = false;
-	#if  USE_EXTRA_FIELDS
-	   Leaf_Array [Leaf] . Depth = 1 + End - Start;
-	   Leaf_Array [Leaf] . ID = Start;
-	   Leaf_Array [Leaf] . Parent = Root;
-	#endif
+	   Leaf_Array.get(Leaf) . Lo = Start;
+	   Leaf_Array.get(Leaf) . Sibling = NIL;
+	   Leaf_Array.get(Leaf) . Len = 1 + End - Start;
+	   Leaf_Array.get(Leaf) . Sibling_Is_Leaf = false;
+	   Leaf_Array.get(Leaf) . Depth = 1 + End - Start;
+	   Leaf_Array.get(Leaf) . ID = Start;
+	   Leaf_Array.get(Leaf) . Parent = Root;
 
 	   Last_Parent = Root;
 	   Last_Parent_Depth = 0;
 
 	   while  (++ Start <= End)
 	     {
-	      if  (opt_Verbose > 1)
-	          printf ("Build_Suffix_Tree:  Start = %d\n", Start);
+	      if  (opt_Verbose)
+	          System.out.printf ("Build_Suffix_Tree:  Start = %d\n", Start);
 
 	      Curr_ID ++;
-	      if  (Node_Array [Last_Parent] . Link != NIL)
+	      if  (Node_Array.get(Last_Parent) . Link != NIL)
 	          {
 	           if  (Last_Parent == Root)
 	               {
@@ -764,79 +760,74 @@ public final class RepeatMatch {
 	                Segment_Len = 2 + End - Start - Last_Parent_Depth;
 	                Link_Depth = Last_Parent_Depth - 1;
 	               }
-	           New_Place = New_Step_Down (Node_Array [Last_Parent] . Link,
+	           New_Place = New_Step_Down (Node_Array.get(Last_Parent) . Link,
 	                                  Link_Depth,
 	                                  Segment_Start, Segment_Len,
 	                                  Matched, false,
 	                                  New_Place_Is_Leaf, Grandparent);
 	           if  (Matched >= Segment_Len)
 	               {
-	                printf ("Ooops:  Suffix can't appear twice.\n");
-	                exit  (EXIT_FAILURE);
+	        	   System.err.printf ("Ooops:  Suffix can't appear twice.\n");
+	        	   System.exit  (1);
 	               }
 	             else
 	               {
 	                Leaf = Start;
-	                Leaf_Array [Leaf] . Lo = Segment_Start + Matched;
-	                Leaf_Array [Leaf] . Sibling = Node_Array [New_Place] . Child;
-	                Leaf_Array [Leaf] . Sibling_Is_Leaf
-	                       = Node_Array [New_Place] . Child_Is_Leaf;
-	                Node_Array [New_Place] . Child = Leaf;
-	                Node_Array [New_Place] . Child_Is_Leaf = true;
-	                Leaf_Array [Leaf] . Len = Segment_Len - Matched;
-	#if  USE_EXTRA_FIELDS
-	                Leaf_Array [Leaf] . Depth = 1 + End - Start;
-	                Leaf_Array [Leaf] . ID = Start;
-	                Leaf_Array [Leaf] . Parent = New_Place;
-	#endif
+	                Leaf_Array.get(Leaf) . Lo = Segment_Start + Matched;
+	                Leaf_Array.get(Leaf) . Sibling = Node_Array.get(New_Place) . Child;
+	                Leaf_Array.get(Leaf) . Sibling_Is_Leaf
+	                       = Node_Array.get(New_Place) . Child_Is_Leaf;
+	                Node_Array.get(New_Place) . Child = Leaf;
+	                Node_Array.get(New_Place) . Child_Is_Leaf = true;
+	                Leaf_Array.get(Leaf) . Len = Segment_Len - Matched;
+	                Leaf_Array.get(Leaf) . Depth = 1 + End - Start;
+	                Leaf_Array.get(Leaf) . ID = Start;
+	                Leaf_Array.get(Leaf) . Parent = New_Place;
 	               }
 	           Last_Parent = New_Place;
 	           Last_Parent_Depth = Link_Depth + Matched;
 	          }
 	        else
 	          {
-	           Leaf_Len = Leaf_Array [Leaf] . Len;
+	           Leaf_Len = Leaf_Array.get(Leaf) . Len;
 	           if  (Grandparent == Root)
 	               {
 	                Segment_Start = Start;
-	                Segment_Len = Node_Array [Last_Parent] . Len - 1;
+	                Segment_Len = Node_Array.get(Last_Parent) . Len - 1;
 	                Link_Depth = 0;
 	               }
 	             else
 	               {
 	                Segment_Start = Start + Last_Parent_Depth - 1
-	                                    - Node_Array [Last_Parent] . Len;
-	                Segment_Len = Node_Array [Last_Parent] . Len;
+	                                    - Node_Array.get(Last_Parent) . Len;
+	                Segment_Len = Node_Array.get(Last_Parent) . Len;
 	                Link_Depth = Last_Parent_Depth - 1
-	                                    - Node_Array [Last_Parent] . Len;
+	                                    - Node_Array.get(Last_Parent) . Len;
 	               }
 
-	           New_Place = New_Jump_Down (Node_Array [Grandparent] . Link,
+	           New_Place = New_Jump_Down (Node_Array.get(Grandparent) . Link,
 	                                  Link_Depth,
 	                                  Segment_Start, Segment_Len,
 	                                  Made_New_Node, Grandparent);
 	           if  (Made_New_Node)
 	               {
 	                Leaf = Start;
-	                Leaf_Array [Leaf] . Lo = Segment_Start + Segment_Len;
-	                Leaf_Array [Leaf] . Sibling = Node_Array [New_Place] . Child;
-	                Leaf_Array [Leaf] . Sibling_Is_Leaf
-	                       = Node_Array [New_Place] . Child_Is_Leaf;
-	                Node_Array [New_Place] . Child = Leaf;
-	                Node_Array [New_Place] . Child_Is_Leaf = true;
-	                Leaf_Array [Leaf] . Len = Leaf_Len;
-	#if  USE_EXTRA_FIELDS
-	                Leaf_Array [Leaf] . Depth = 1 + End - Start;
-	                Leaf_Array [Leaf] . ID = Start;
-	                Leaf_Array [Leaf] . Parent = New_Place;
-	#endif
-	                Node_Array [Last_Parent] . Link = New_Place;
+	                Leaf_Array.get(Leaf) . Lo = Segment_Start + Segment_Len;
+	                Leaf_Array.get(Leaf) . Sibling = Node_Array.get(New_Place) . Child;
+	                Leaf_Array.get(Leaf) . Sibling_Is_Leaf = Node_Array.get(New_Place) . Child_Is_Leaf;
+	                Node_Array.get(New_Place) . Child = Leaf;
+	                Node_Array.get(New_Place) . Child_Is_Leaf = true;
+	                Leaf_Array.get(Leaf) . Len = Leaf_Len;
+	                Leaf_Array.get(Leaf) . Depth = 1 + End - Start;
+	                Leaf_Array.get(Leaf) . ID = Start;
+	                Leaf_Array.get(Leaf) . Parent = New_Place;
+	                Node_Array.get(Last_Parent) . Link = New_Place;
 	                Last_Parent = New_Place;
 	                Last_Parent_Depth = Link_Depth + Segment_Len;
 	               }
 	             else
 	               {
-	                Node_Array [Last_Parent] . Link = New_Place;
+	                Node_Array.get(Last_Parent) . Link = New_Place;
 	                Segment_Start += Segment_Len;
 	                Link_Depth += Segment_Len;
 	                Segment_Len = Leaf_Len;
@@ -846,25 +837,23 @@ public final class RepeatMatch {
 	                                       New_Place_Is_Leaf, Grandparent);
 	                if  (Matched >= Segment_Len)
 	                    {
-	                     printf ("Ooops:  Suffix can't appear twice.\n");
-	                     exit  (EXIT_FAILURE);
+	                     System.err.printf ("Ooops:  Suffix can't appear twice.\n");
+	                     System.exit  (1);
 	                    }
 	                  else
 	                    {
 	                     Leaf = Start;
-	                     Leaf_Array [Leaf] . Lo = Segment_Start + Matched;
-	                     Leaf_Array [Leaf] . Sibling
-	                             = Node_Array [New_Place] . Child;
-	                     Leaf_Array [Leaf] . Sibling_Is_Leaf
-	                            = Node_Array [New_Place] . Child_Is_Leaf;
-	                     Node_Array [New_Place] . Child = Leaf;
-	                     Node_Array [New_Place] . Child_Is_Leaf = true;
-	                     Leaf_Array [Leaf] . Len = Segment_Len - Matched;
-	#if  USE_EXTRA_FIELDS
-	                     Leaf_Array [Leaf] . Depth = 1 + End - Start;
-	                     Leaf_Array [Leaf] . ID = Start;
-	                     Leaf_Array [Leaf] . Parent = New_Place;
-	#endif
+	                     Leaf_Array.get(Leaf) . Lo = Segment_Start + Matched;
+	                     Leaf_Array.get(Leaf) . Sibling
+	                             = Node_Array.get(New_Place) . Child;
+	                     Leaf_Array.get(Leaf) . Sibling_Is_Leaf
+	                            = Node_Array.get(New_Place) . Child_Is_Leaf;
+	                     Node_Array.get(New_Place) . Child = Leaf;
+	                     Node_Array.get(New_Place) . Child_Is_Leaf = true;
+	                     Leaf_Array.get(Leaf) . Len = Segment_Len - Matched;
+	                     Leaf_Array.get(Leaf) . Depth = 1 + End - Start;
+	                     Leaf_Array.get(Leaf) . ID = Start;
+	                     Leaf_Array.get(Leaf) . Parent = New_Place;
 	                    }
 	                Last_Parent = New_Place;
 	                Last_Parent_Depth = Link_Depth + Matched;
@@ -985,15 +974,15 @@ public final class RepeatMatch {
 	     {
 	      if  (P_Is_Leaf)
 	          {
-	           D = Leaf_Array [P] . Len;
-	           P_Sib = Leaf_Array [P] . Sibling;
-	           P_Sib_Is_Leaf = Leaf_Array [P] . Sibling_Is_Leaf;
+	           D = Leaf_Array.get(P) . Len;
+	           P_Sib = Leaf_Array.get(P) . Sibling;
+	           P_Sib_Is_Leaf = Leaf_Array.get(P) . Sibling_Is_Leaf;
 	          }
 	        else
 	          {
-	           D = Node_Array [P] . Len;
-	           P_Sib = Node_Array [P] . Sibling;
-	           P_Sib_Is_Leaf = Node_Array [P] . Sibling_Is_Leaf;
+	           D = Node_Array.get(P) . Len;
+	           P_Sib = Node_Array.get(P) . Sibling;
+	           P_Sib_Is_Leaf = Node_Array.get(P) . Sibling_Is_Leaf;
 	          }
 
 	      if  (Len == D)
@@ -1041,19 +1030,19 @@ public final class RepeatMatch {
 
 	           if  (! P_Is_Leaf)
 	               {
-	                Node_Array [P] . Lo += Len;
-	                Node_Array [P] . Len -= Len;
-	                Node_Array [P] . Parent = Q;
-	                Node_Array [P] . Sibling = NIL;
-	                Node_Array [P] . Sibling_Is_Leaf = false;
+	                Node_Array.get(P) . Lo += Len;
+	                Node_Array.get(P) . Len -= Len;
+	                Node_Array.get(P) . Parent = Q;
+	                Node_Array.get(P) . Sibling = NIL;
+	                Node_Array.get(P) . Sibling_Is_Leaf = false;
 	               }
 	             else
 	               {
-	                Leaf_Array [P] . Lo += Len;
-	                Leaf_Array [P] . Len -= Len;
-	                Leaf_Array [P] . Parent = Q;
-	                Leaf_Array [P] . Sibling = NIL;
-	                Leaf_Array [P] . Sibling_Is_Leaf = false;
+	                Leaf_Array.get(P) . Lo += Len;
+	                Leaf_Array.get(P) . Len -= Len;
+	                Leaf_Array.get(P) . Parent = Q;
+	                Leaf_Array.get(P) . Sibling = NIL;
+	                Leaf_Array.get(P) . Sibling_Is_Leaf = false;
 	               }
 	           
 	           Made_New_Node = true;
@@ -1081,11 +1070,12 @@ public final class RepeatMatch {
 	*  of the reverse complement strand. */
 
 	  {
-	   int  i, j, k, L, R, Reversed;
+	   int  i, j, k, L, R;
+	   boolean Reversed;
 	  
-	   for  (i = A;  i != NIL;  i = Next_Leaf [i])
+	   for  (i = A;  i != NIL;  i = Next_Leaf.get(i))
 	     {
-	      for  (j = B;  j != NIL;  j = Next_Leaf [j])
+	      for  (j = B;  j != NIL;  j = Next_Leaf.get(j))
 	        {
 	         if  (Data [i - 1] == Data [j - 1]
 	                  || Data [i + n] == Data [j + n]
@@ -1094,7 +1084,7 @@ public final class RepeatMatch {
 	         Reversed = false;
 	         if  (j > String_Separator)
 	             {
-	              k = Genome_Len - (j - String_Separator) - n + 2;
+	              k = Input_Seq_Len - (j - String_Separator) - n + 2;
 	              if  (k < i)
 	                  continue;
 	              L = i;
@@ -1103,7 +1093,7 @@ public final class RepeatMatch {
 	             }
 	         else if  (i > String_Separator)
 	             {
-	              k = Genome_Len - (i - String_Separator) - n + 2;
+	              k = Input_Seq_Len - (i - String_Separator) - n + 2;
 	              if  (k < j)
 	                  continue;
 	              L = j;
@@ -1120,11 +1110,11 @@ public final class RepeatMatch {
 	              L = j;
 	              R = i;
 	             }
-	         if  (Verbose > 1)
+	         if  (opt_Verbose)
 	             Verify_Match (L, R, n, Reversed);
-	         if  (Tandem_Only && L + n < R)
+	         if  (opt_Tandem_Only && L + n < R)
 	             continue;
-	         printf ("%9d %10d%c %8d\n", L, R, Reversed ? 'r' : ' ', n);
+	         System.out.printf ("%9d %10d%c %8d\n", L, R, Reversed ? 'r' : ' ', n);
 	        }
 	     }
 	  }
@@ -1161,8 +1151,8 @@ public final class RepeatMatch {
 	          System.out.printf ("  Par = %d", Parent);
 	          System.out.printf ("  Depth = %d", Leaf_Array.get(Root) . Depth);
 	          if  (Leaf_Array.get(Root) . Is_Duplicate)
-	        	  System.out.printf ("  Duplicate = %d", (Root + Genome_Len + 1));
-	          System.out.printf ('\n');
+	        	  System.out.printf ("  Duplicate = %d", (Root + Input_Seq_Len + 1));
+	          System.out.print ('\n');
 	          Is_Leaf = Leaf_Array.get(Root) . Sibling_Is_Leaf;
 	          Root = Leaf_Array.get(Root) . Sibling;
 	         }
@@ -1173,21 +1163,21 @@ public final class RepeatMatch {
 	          
 	          if  (Node_Array.get(Root) . Len > 0)
 	              for  (i = 0;  i < Node_Array.get(Root) . Len;  i ++)
-	                putchar (Data [Node_Array.get(Root) . Lo + i]);
+	                System.out.print (Data [Node_Array.get(Root) . Lo + i]);
 	            else
 	              for  (i = 0;  i > Node_Array.get(Root) . Len;  i --)
-	                putchar (Complement (Data [Node_Array.get(Root) . Lo + i]));
-	          printf ("  Par = %d", Parent);
+	                System.out.print (Complement (Data [Node_Array.get(Root) . Lo + i]));
+	          System.out.printf ("  Par = %d", Parent);
 
-	          printf ("  Depth = %d", Node_Array.get(Root) . Depth);
+	          System.out.printf ("  Depth = %d", Node_Array.get(Root) . Depth);
 	          if  (Node_Array.get(Root) . Link != NIL)
-	              printf ("   Link to node %d (ID %d)", Node_Array.get(Root) . Link,
-	                      Node_Array [Node_Array.get(Root) . Link] . ID);
+	        	  System.out.printf ("   Link to node %d (ID %d)", Node_Array.get(Root) . Link,
+	                      Node_Array.get(Node_Array.get(Root) . Link) . ID);
 
-	          putchar ('\n');
+	          System.out.print ('\n');
 	          List_Tree (Node_Array.get(Root) . Child,
 	                            Node_Array.get(Root) . Child_Is_Leaf, Root,
-	                            Parent_Depth + abs (Node_Array.get(Root) . Len));
+	                            Parent_Depth + Math.abs (Node_Array.get(Root) . Len));
 	          Is_Leaf = Node_Array.get(Root) . Sibling_Is_Leaf;
 	          Root = Node_Array.get(Root) . Sibling;
 	         }

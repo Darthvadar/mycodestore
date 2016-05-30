@@ -258,22 +258,31 @@ public final class RepeatMatch {
 	 * 
 	 */
 
-	final static int SHOW_TREE = 0;
-	final static int USE_EXTRA_FIELDS = 0;
-	final static int DEBUG = 0;
-	final static int  NIL = 0;         // Remove if convert to pointers
+	private final static int  NIL = 0;         // Remove if convert to pointers
+	private final static int  DEFAULT_MIN_MATCH_LEN = 20;
+	private final static char  DOLLAR_CHAR = '$';
+	private final static char  DONT_KNOW_CHAR = 'N';
+	private final static char  START_CHAR = '%';
 	
-	int  Global_Trace = 0;
-	int  Global_Skip_Ct = 0;
-	int  Global_Non_Skip_Ct = 0;
+	public int  opt_Min_Match_Len = DEFAULT_MIN_MATCH_LEN;
+	  // set by -n option; 
+	public boolean  opt_Exhaustive_Matches = false;
+	  // Set by -E option; if true then matches are found by exhaustive search
+	  // For testing purposes
+	public boolean  opt_Forward_Only = false;
+	  // Set by -f option; if true then matches to reverse complement string
+	  // are not considered	
+	public boolean  opt_Tandem_Only = false;
+	  // Set by -t option to output only tandem repeats
+	public boolean  opt_Verbose = false;
+	  // Set by -V option to do extra tests and/or print debugging output
+	
+	private int  Global_Trace = 0;
+	private int  Global_Skip_Ct = 0;
+	private int  Global_Non_Skip_Ct = 0;
 
-	static int  DEFAULT_MIN_MATCH_LEN = 20;
-	final static char  DOLLAR_CHAR = '$';
-	final static char  DONT_KNOW_CHAR = 'N';
-	final static int  MAX_NAME_LEN = 500;
-	final static char  START_CHAR = '%';
 	
-	final class Node	  {
+	private final class Node	  {
 	   int  Lo;
 	   int  Child = 31;
 	   boolean  Child_Is_Leaf = true;
@@ -288,7 +297,7 @@ public final class RepeatMatch {
 	   int  Subtree_Size;
 	  } 
 
-	final class Leaf 	  {
+	private final class Leaf 	  {
 	   int  Lo;
 	   int  Sibling = 31;
 	   boolean  Sibling_Is_Leaf = true;
@@ -299,35 +308,21 @@ public final class RepeatMatch {
 	   boolean  Is_Duplicate = true;
 	  }
 	
-	int Input_Seq_Len = 0;
-	char[] Data; 
-	final List<Leaf> Leaf_Array = new LinkedList<Leaf>();
-	final List<Node> Node_Array = new LinkedList<Node>();
-	final List<Integer> Next_Leaf = new LinkedList<Integer>();
-
-	int  Curr_ID;
-	int  Curr_String_ID;
-	int  Data_Len = 2;
-	static boolean  opt_Exhaustive_Matches = false;
-	  // Set by -E option; if true then matches are found by exhaustive search
-	  // For testing purposes
-	static boolean  opt_Forward_Only = false;
-	  // Set by -f option; if true then matches to reverse complement string
-	  // are not considered
+	private int Input_Seq_Len = 0;
+	private char[] Data; 
+	private final List<Leaf> Leaf_Array = new LinkedList<Leaf>();
+	private final List<Node> Node_Array = new LinkedList<Node>();
+	private final List<Integer> Next_Leaf = new LinkedList<Integer>();
+	private int Tree_Root = NIL;
+	private int  Curr_ID;
+	private int  Curr_String_ID;
+	private int  Data_Len = 2;	
+	private int  Longest_String = 0;
+	private int  Max_Depth = 0;
+	private int  Next_Avail_Node = 1;
+	private int  Num_Strings = 2;
+	private int  String_Separator;
 	
-	int  Longest_String = 0;
-	int  Max_Depth = 0;
-	static int  opt_Min_Match_Len = DEFAULT_MIN_MATCH_LEN;
-	  // set by -n option; 
-	
-	int  Next_Avail_Node = 1;
-	int  Num_Strings = 2;
-	int  String_Separator;
-	static boolean  opt_Tandem_Only = false;
-	  // Set by -t option to output only tandem repeats
-	static boolean  opt_Verbose = false;
-	  // Set by -V option to do extra tests and/or print debugging output
-
 	public RepeatMatch(String input_sequence){
 		// check sequence?
 		// make sure lower case
@@ -367,13 +362,12 @@ public final class RepeatMatch {
 		}
 		
 		Curr_String_ID = 0;
-		int Root = Build_Suffix_Tree (1);
+		Tree_Root = Build_Suffix_Tree (1);
 		
-		System.out.printf ("\n\nNodes in Entire Suffix Tree:\n\n");
-		   List_Tree (Root, false, 0, 0);
+		
 	}
 	
-	int  Add_Duplicates  (int Start, int End, int Leaf, int Leaf_Depth)
+	private int  Add_Duplicates  (int Start, int End, int Leaf, int Leaf_Depth)
 
 	/* Mark all duplicate occurrences of suffixes in  Data [Start .. End]
 	*  in suffix tree where the first duplicate is at  Leaf  whose
@@ -389,7 +383,7 @@ public final class RepeatMatch {
 	   return  0;
 	  }
 
-	int  Add_String  (int Start, int Root)
+	private int  Add_String  (int Start, int Root)
 
 	/* Add all suffixes of string  Data [Start ...]  ending at the
 	*  first DOLLAR_CHAR encountered to the suffix tree rooted at
@@ -589,7 +583,7 @@ public final class RepeatMatch {
 	   return  0;
 	  }
 
-	final class _New_Step_Down_InOut_Args {
+	private final class _New_Step_Down_InOut_Args {
 		int New_Place;
 		int Depth;
 		boolean New_Place_Is_Leaf;
@@ -608,7 +602,7 @@ public final class RepeatMatch {
 		}
 	}
 	
-	void  New_Step_Down
+	private void  New_Step_Down
     (int Node, int Node_Depth, int Lo, int Len, boolean Doing_Prefix,
     		_New_Step_Down_InOut_Args inout_args)
 
@@ -741,7 +735,7 @@ public final class RepeatMatch {
    return ;
   }
 	
-	int  Build_Suffix_Tree  (int Start)
+	private int  Build_Suffix_Tree  (int Start)
 
 	/* Build a suffix tree for the string  Data [Start ...]  ending at
 	*  the first DOLLAR_CHAR encountered.  Return the subscript of the
@@ -924,7 +918,7 @@ public final class RepeatMatch {
 	   return  Root;
 	  }
 
-	final class _New_Find_Child_InOut_Args {
+	private final class _New_Find_Child_InOut_Args {
 		int P;
 		boolean P_Is_Leaf;
 		int Pred;
@@ -942,8 +936,7 @@ public final class RepeatMatch {
 		}
 	}
 	
-
-	void  New_Find_Child
+	private void  New_Find_Child
 	    (int Node, char Ch, int Node_Depth,
 	    		_New_Find_Child_InOut_Args inout_args)
 
@@ -1018,8 +1011,7 @@ public final class RepeatMatch {
 	   return;
 	  }
 
-	
-	final class _New_Jump_Down_InOut_Args {
+	private final class _New_Jump_Down_InOut_Args {
 		int New_Place;
 		boolean Made_New_Node;
 		int Grandparent;		
@@ -1036,8 +1028,7 @@ public final class RepeatMatch {
 		}
 	}
 
-
-	void  New_Jump_Down
+	private void  New_Jump_Down
 	    (int Node, int Node_Depth, int Lo, int Len, 
 	    		_New_Jump_Down_InOut_Args inout_args)
 
@@ -1160,9 +1151,7 @@ public final class RepeatMatch {
 	   return;
 	  }
 
-
-
-	void  List_Matches
+	private void  List_Matches
 	    (int A, int B, int n)
 
 	/* List all maximal matches of length  n   between entries in
@@ -1224,7 +1213,7 @@ public final class RepeatMatch {
 
 
 
-	int  List_Tree  (int Root, boolean Is_Leaf, int Parent, int Parent_Depth)
+	private int  List_Tree  (int Root, boolean Is_Leaf, int Parent, int Parent_Depth)
 
 	//  Show contents of suffix tree rooted at  Root  whose parent's
 	//  string depth in the suffix tree is  Depth .   Is_Leaf
@@ -1288,9 +1277,7 @@ public final class RepeatMatch {
 	   return  0;
 	  }
 
-
-
-	void  List_Maximal_Matches  (int Root, boolean Is_Leaf, int Parent, int Parent_Depth)
+	private void  List_Maximal_Matches  (int Root, boolean Is_Leaf, int Parent, int Parent_Depth)
 
 	/* List substring pairs that occur more than once where the match
 	*  does not extend either to the left or to the right for
@@ -1435,7 +1422,7 @@ public final class RepeatMatch {
 
 
 
-	int  Longest_Prefix_Match
+	private int  Longest_Prefix_Match
 	    (char[] p, char[] q)
 
 	//  Return the length of the longest common prefix of strings  p
@@ -1453,7 +1440,7 @@ public final class RepeatMatch {
 
 
 
-	void  Mark_Skipable_Nodes
+	private void  Mark_Skipable_Nodes
 	    (int Root, boolean Is_Leaf, int Parent, int Parent_Depth)
 
 	//  Set the  Should_Skip  field of the node that  Root  links to
@@ -1503,7 +1490,7 @@ public final class RepeatMatch {
 
 
 
-	int  New_Node  ()
+	private int  New_Node  ()
 
 	/* Allocate and return the subscript of a new node. */
 
@@ -1512,7 +1499,7 @@ public final class RepeatMatch {
 	  }
 
 
-	void  Set_Subtree_Size
+	private void  Set_Subtree_Size
 	    (int Root, boolean Is_Leaf, int Parent, int Parent_Depth)
 	
 	//  Set the  Subtree_Size  field of  Root  and all its descendants
@@ -1561,8 +1548,8 @@ public final class RepeatMatch {
 	  }
 
 
-void  Verify_Match
-    (int a, int b, int n, boolean reverse)
+	private void  Verify_Match
+    	(int a, int b, int n, boolean reverse)
 
 //  Verify that the match of length  n  starting at  Data [a]  and
 //  Data [b]  is a maximal match.  If  reverse  is true then the
@@ -1610,10 +1597,13 @@ void  Verify_Match
   }
 	
 	
-	
-	
 	public static void main(String[] args){
 		RepeatMatch rm = new RepeatMatch("ATGCGC");
 		
+	}
+	
+	public void ShowTree(){
+		System.out.printf ("\n\nNodes in Entire Suffix Tree:\n\n");
+		List_Tree (Tree_Root, false, 0, 0);
 	}
 }

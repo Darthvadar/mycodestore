@@ -1,10 +1,30 @@
 package repeat_match_java;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 public final class RepeatMatch {
 
+	static class Repeat {
+		int start1;
+		int start2;
+		int length;
+		boolean start2_on_reverse;
+		
+		Repeat(int start1, int start2, boolean reversed, int length){
+			this.start1 = start1;
+			this.start2 = start2;
+			this.start2_on_reverse = reversed;
+			this.length = length;
+		}
+	}
+	
 	static char  Complement  (char Ch)
 
 	/* Returns the DNA complement of  Ch . */
@@ -264,17 +284,17 @@ public final class RepeatMatch {
 	private final static char  DONT_KNOW_CHAR = 'N';
 	private final static char  START_CHAR = '%';
 	
-	public int  opt_Min_Match_Len = DEFAULT_MIN_MATCH_LEN;
+	private int  opt_Min_Match_Len = DEFAULT_MIN_MATCH_LEN;
 	  // set by -n option; 
-	public boolean  opt_Exhaustive_Matches = false;
+	private boolean  opt_Exhaustive_Matches = false;
 	  // Set by -E option; if true then matches are found by exhaustive search
 	  // For testing purposes
-	public boolean  opt_Forward_Only = false;
+	private boolean  opt_Forward_Only = false;
 	  // Set by -f option; if true then matches to reverse complement string
 	  // are not considered	
-	public boolean  opt_Tandem_Only = false;
+	private boolean  opt_Tandem_Only = false;
 	  // Set by -t option to output only tandem repeats
-	public boolean  opt_Verbose = false;
+	private boolean  opt_Verbose = false;
 	  // Set by -V option to do extra tests and/or print debugging output
 	
 	private int  Global_Trace = 0;
@@ -310,6 +330,7 @@ public final class RepeatMatch {
 	
 	private int Input_Seq_Len = 0;
 	private char[] Data; 
+	private String DataInString;
 	private final List<Leaf> Leaf_Array = new LinkedList<Leaf>();
 	private final List<Node> Node_Array = new LinkedList<Node>();
 	private final List<Integer> Next_Leaf = new LinkedList<Integer>();
@@ -322,8 +343,11 @@ public final class RepeatMatch {
 	private int  Next_Avail_Node = 1;
 	private int  Num_Strings = 2;
 	private int  String_Separator;
+	private List<Repeat> RepeatsFound = new ArrayList<Repeat>();
 	
-	public RepeatMatch(String input_sequence){
+	public RepeatMatch(String input_sequence, boolean only_forward) throws Exception{
+		opt_Forward_Only = only_forward;
+		
 		// check sequence?
 		// make sure lower case
 		String forward_seq = input_sequence.toLowerCase();
@@ -344,9 +368,11 @@ public final class RepeatMatch {
 		sb.append(_s);
 		sb.append(DOLLAR_CHAR);
 		sb.append('\0');
-		int data_store_size = 2 * Input_Seq_Len + 4;
+		//int data_store_size = 2 * Input_Seq_Len + 4;
+		DataInString = sb.toString();
+		Data = DataInString.toCharArray();
 		Data_Len = 3 + 2 * Input_Seq_Len;
-		Data = sb.toString().toCharArray();
+		
 		
 //		System.err.println(sb.length());
 //		System.err.println(data_store_size);
@@ -358,13 +384,29 @@ public final class RepeatMatch {
 		for(int i = 0; i< Data_Len; i++){
 			Leaf_Array.add(new Leaf());
 			Node_Array.add(new Node());
-			Next_Leaf.add(-1);
+			Next_Leaf.add(NIL);
 		}
 		
 		Curr_String_ID = 0;
 		Tree_Root = Build_Suffix_Tree (1);
 		
+		if  (! opt_Forward_Only)
+        {
+	        Curr_String_ID = 1;
+	        if  (Add_String (2 + Input_Seq_Len, Tree_Root) != 0){
+	        	throw new Exception("*** Genome is exact palindrome ***");
+	        }        	
+       }
 		
+		System.err.printf ("Genome Length = %d   Used %d internal nodes\n", Input_Seq_Len, Next_Avail_Node);
+
+		Set_Subtree_Size (Tree_Root, false, NIL, 0);
+		Mark_Skipable_Nodes (Tree_Root, false, NIL, 0);
+		
+	}
+	
+	public RepeatMatch(String input_sequence) throws Exception{
+		this(input_sequence, false);
 	}
 	
 	private int  Add_Duplicates  (int Start, int End, int Leaf, int Leaf_Depth)
@@ -1207,8 +1249,11 @@ public final class RepeatMatch {
 	         if  (opt_Tandem_Only && L + n < R)
 	             continue;
 	         System.out.printf ("%9d %10d%c %8d\n", L, R, Reversed ? 'r' : ' ', n);
+	         RepeatsFound.add(new Repeat(L, R, Reversed, n));
 	        }
 	     }
+	   
+	   return;
 	  }
 
 
@@ -1438,6 +1483,21 @@ public final class RepeatMatch {
 	   return  i;
 	  }
 
+	private int  Longest_Prefix_Match
+	    (String p, String q)
+	
+	//  Return the length of the longest common prefix of strings  p
+	//  and  q .  Assumes they will mismatch before running off the
+	//  end of either string.
+	
+	  {
+	   int  i;
+	
+	   for  (i = 0;  p.charAt(i) ==  p.charAt(i);  i ++)
+	     ;
+	
+	   return  i;
+	  }
 
 
 	private void  Mark_Skipable_Nodes
@@ -1597,9 +1657,95 @@ public final class RepeatMatch {
   }
 	
 	
-	public static void main(String[] args){
-		RepeatMatch rm = new RepeatMatch("ATGCGC");
+	
+	public List<Repeat> getRepeats(){
 		
+		if  (opt_Exhaustive_Matches)
+	       {  // Exhaustive search for matches
+	        int  i, j, match;
+
+	        Data [Input_Seq_Len + 1] = '#';
+
+	        System.out.printf ("Exhaustive Exact Matches:\n");
+	        System.out.printf ("%9s %10s  %8s\n", "Start1", "Start2", "Length");
+
+	        for  (i = 1;  i <= Input_Seq_Len - opt_Min_Match_Len;  i ++)
+	          for  (j = i + 1;  j <= 1 + Input_Seq_Len - opt_Min_Match_Len;  j ++)
+	            {
+	             if  (Data [i - 1] == Data [j - 1])
+	                 continue;
+	             //match = Longest_Prefix_Match (Data + i, Data + j);
+	             match = Longest_Prefix_Match (DataInString.substring(i), DataInString.substring(j));
+	             if  (match >= opt_Min_Match_Len)
+	            	 System.out.printf ("%9d %10d%c %8d\n", i, j, ' ', match);
+	            }
+
+	        for  (i = 1;  i <= Input_Seq_Len + 1 - opt_Min_Match_Len;  i ++)
+	          for  (j = Input_Seq_Len + 2;  j <= 2 * Input_Seq_Len - i;  j ++)
+	            {
+	             if  (Data [i - 1] == Data [j - 1])
+	                 continue;
+	             //match = Longest_Prefix_Match (Data + i, Data + j);
+	             match = Longest_Prefix_Match (DataInString.substring(i), DataInString.substring(j));
+	             if  (match >= opt_Min_Match_Len)
+	            	 System.out.printf ("%9d %10d%c %8d\n", i, 2 * Input_Seq_Len + 2 - j, 'r', match);
+	            }
+
+	        Data [Input_Seq_Len + 1] = DOLLAR_CHAR;
+	       }
+	     else
+	       {
+	    	 System.out.printf ("Long Exact Matches:\n");
+	    	 System.out.printf ("%9s %10s  %8s\n", "Start1", "Start2", "Length");
+
+	        List_Maximal_Matches (Tree_Root, false, NIL, 0);
+	       }
+
+	   if  (opt_Verbose)
+	       {
+		   System.out.printf ("Global_Skip_Ct = %d\n", Global_Skip_Ct);
+		   System.out.printf ("Global_Non_Skip_Ct = %d\n", Global_Non_Skip_Ct);
+	       }
+		
+		return this.RepeatsFound;
+	}
+	
+	public static List<Repeat> getRepeats2(){
+		List<Repeat> rst = new ArrayList<Repeat>();
+		
+		return rst;
+	}
+	
+	public static List<Repeat> getTandomRepeats(String seq, int min_len) throws Throwable{
+		RepeatMatch rm = new RepeatMatch(seq, true);
+		rm.opt_Tandem_Only = true;
+		rm.opt_Exhaustive_Matches = false;
+		rm.opt_Min_Match_Len = min_len;
+		return rm.getRepeats();
+	}
+	
+	public static void main(String[] args) throws Throwable{
+		StringBuilder sb = new StringBuilder();
+		InputStreamReader read = new InputStreamReader(new FileInputStream(new File("test/test.seq.txt")));
+        BufferedReader bufferedReader = new BufferedReader(read);
+        String lineTxt = null;
+        while((lineTxt = bufferedReader.readLine()) != null){
+        	if(lineTxt.startsWith(">")){
+        		continue;
+        	}
+        	lineTxt.replaceAll("[^atgcATGC]", "");
+            System.out.println(lineTxt);
+            sb.append(lineTxt);
+        }
+        read.close();
+		
+        String input_seq = sb.toString();
+       
+        RepeatMatch rm = new RepeatMatch(input_seq);
+        rm.ShowTree();
+        rm.getRepeats();
+        
+        getTandomRepeats(input_seq, 10);
 	}
 	
 	public void ShowTree(){

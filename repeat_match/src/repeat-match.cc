@@ -11,9 +11,9 @@
 #include  "tigrinc.hh"
 
 
-#define  SHOW_TREE 0
-#define  USE_EXTRA_FIELDS  0
-#define  DEBUG  0
+#define  SHOW_TREE 1
+#define  USE_EXTRA_FIELDS  1
+#define  DEBUG  1
 
 
 int  Global_Trace = 0;
